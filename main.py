@@ -159,7 +159,10 @@ def visualize_groups(group1, group2, group3, overlap_points):
         'original_scatters': [scatter1, scatter2, scatter3],
         'kmeans_scatter': None,
         'centroids_scatter': None,
-        'showing_kmeans': False
+        'showing_kmeans': False,
+        'centroids': None,
+        'labels': None,
+        'scattered': False
     }
 
     def on_kmeans_button_click(event):
@@ -167,6 +170,11 @@ def visualize_groups(group1, group2, group3, overlap_points):
         if not state['showing_kmeans']:
             # Run K-means clustering
             centroids, labels = kmeans_clustering(all_data, k=3, max_iterations=5)
+
+            # Store centroids and labels in state
+            state['centroids'] = centroids
+            state['labels'] = labels
+            state['scattered'] = False
 
             # Hide original groups
             for scatter in state['original_scatters']:
@@ -220,14 +228,73 @@ def visualize_groups(group1, group2, group3, overlap_points):
             ax.set_title('Three Overlapping Groups (2000 points each, 20% overlap)')
             ax.legend()
             state['showing_kmeans'] = False
+            state['centroids'] = None
+            state['labels'] = None
             button.label.set_text('Run K-means')
 
         plt.draw()
+
+    def on_click(event):
+        """Handle mouse click events to detect clicks near centroids."""
+        # Only handle clicks when K-means is showing
+        if not state['showing_kmeans'] or state['centroids'] is None:
+            return
+
+        # Ignore clicks outside the main axes
+        if event.inaxes != ax:
+            return
+
+        click_x, click_y = event.xdata, event.ydata
+        if click_x is None or click_y is None:
+            return
+
+        # Check if click is near any centroid (within threshold distance)
+        threshold = 0.5  # Distance threshold for detecting click near centroid
+        centroids = state['centroids']
+        labels = state['labels']
+
+        for i, centroid in enumerate(centroids):
+            distance = np.sqrt((click_x - centroid[0])**2 + (click_y - centroid[1])**2)
+            if distance < threshold:
+                print(f"\nClick detected near Cluster {i+1} centroid!")
+                print(f"Scattering Cluster {i+1} points randomly...")
+
+                # Get current axis limits to scatter within view
+                x_min, x_max = ax.get_xlim()
+                y_min, y_max = ax.get_ylim()
+
+                # Get current positions
+                current_positions = state['kmeans_scatter'].get_offsets()
+                new_positions = current_positions.copy()
+
+                # Only scatter points belonging to this cluster
+                cluster_mask = labels == i
+                n_cluster_points = np.sum(cluster_mask)
+
+                # Generate random positions for this cluster's points only
+                random_x = np.random.uniform(x_min, x_max, n_cluster_points)
+                random_y = np.random.uniform(y_min, y_max, n_cluster_points)
+
+                # Update only the positions of points in this cluster
+                new_positions[cluster_mask] = np.c_[random_x, random_y]
+
+                # Update the scatter plot with new positions
+                if state['kmeans_scatter'] is not None:
+                    state['kmeans_scatter'].set_offsets(new_positions)
+
+                # Keep centroids in place
+                state['scattered'] = True
+                ax.set_title(f'Cluster {i+1} Points Randomly Scattered!')
+                plt.draw()
+                break
 
     # Add button for K-means clustering
     button_ax = plt.axes([0.4, 0.02, 0.2, 0.05])
     button = Button(button_ax, 'Run K-means')
     button.on_clicked(on_kmeans_button_click)
+
+    # Connect click event handler
+    fig.canvas.mpl_connect('button_press_event', on_click)
 
     plt.savefig('overlapping_groups.png', dpi=300, bbox_inches='tight')
     print("Visualization saved as 'overlapping_groups.png'")
