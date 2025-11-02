@@ -172,16 +172,21 @@ def visualize_groups(group1, group2, group3, overlap_points):
             for scatter in state['original_scatters']:
                 scatter.set_visible(False)
 
-            # Show K-means clusters
-            colors = ['purple', 'orange', 'cyan']
-            for i in range(3):
-                cluster_points = all_data[labels == i]
-                if state['kmeans_scatter'] is None:
-                    ax.scatter(cluster_points[:, 0], cluster_points[:, 1],
-                              c=colors[i], alpha=0.5, s=20, label=f'Cluster {i+1}')
-                else:
-                    ax.scatter(cluster_points[:, 0], cluster_points[:, 1],
-                              c=colors[i], alpha=0.5, s=20, label=f'Cluster {i+1}')
+            # Create original color array (red for group1, blue for group2, green for group3)
+            n1, n2, n3 = len(group1), len(group2), len(group3)
+            original_colors = np.array(['red'] * n1 + ['blue'] * n2 + ['green'] * n3)
+
+            # Cluster edge colors
+            cluster_edge_colors = ['purple', 'orange', 'cyan']
+
+            # Plot points with original fill color and cluster edge color
+            edge_colors = np.array([cluster_edge_colors[label] for label in labels])
+
+            state['kmeans_scatter'] = ax.scatter(all_data[:, 0], all_data[:, 1],
+                                                  c=original_colors,
+                                                  edgecolors=edge_colors,
+                                                  alpha=0.6, s=40, linewidths=2,
+                                                  label='Clustered Points')
 
             # Plot centroids
             state['centroids_scatter'] = ax.scatter(centroids[:, 0], centroids[:, 1],
@@ -189,8 +194,18 @@ def visualize_groups(group1, group2, group3, overlap_points):
                                                      edgecolors='white', linewidths=2,
                                                      label='Centroids', zorder=5)
 
+            # Create custom legend for clusters
+            from matplotlib.patches import Patch
+            legend_elements = [
+                Patch(facecolor='none', edgecolor='purple', label='Cluster 1', linewidth=2),
+                Patch(facecolor='none', edgecolor='orange', label='Cluster 2', linewidth=2),
+                Patch(facecolor='none', edgecolor='cyan', label='Cluster 3', linewidth=2),
+                plt.Line2D([0], [0], marker='X', color='w', markerfacecolor='black',
+                          markersize=10, label='Centroids', markeredgecolor='white', markeredgewidth=1)
+            ]
+            ax.legend(handles=legend_elements)
+
             ax.set_title('K-means Clustering Results (K=3, 5 iterations)')
-            ax.legend()
             state['showing_kmeans'] = True
             button.label.set_text('Show Original')
         else:
