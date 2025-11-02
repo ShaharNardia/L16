@@ -7,6 +7,7 @@ and visualizes them using Matplotlib.
 
 import numpy as np
 import matplotlib.pyplot as plt
+from matplotlib.widgets import Button
 
 
 def generate_overlapping_groups(n_points=2000, overlap_percentage=0.20, random_seed=42):
@@ -75,9 +76,60 @@ def generate_overlapping_groups(n_points=2000, overlap_percentage=0.20, random_s
     return group1, group2, group3, overlap_all
 
 
+def kmeans_clustering(data, k=3, max_iterations=5):
+    """
+    Perform k-means clustering on the data.
+
+    Parameters:
+    -----------
+    data : numpy array
+        Array of shape (n_samples, 2) containing 2D coordinates
+    k : int
+        Number of clusters (default: 3)
+    max_iterations : int
+        Maximum number of iterations (default: 5)
+
+    Returns:
+    --------
+    centroids : numpy array
+        Final centroid positions of shape (k, 2)
+    labels : numpy array
+        Cluster assignment for each data point
+    """
+    # Initialize centroids randomly from the data points
+    np.random.seed(42)
+    random_indices = np.random.choice(len(data), k, replace=False)
+    centroids = data[random_indices].copy()
+
+    print(f"\nRunning K-means with K={k} for {max_iterations} iterations...")
+
+    for iteration in range(max_iterations):
+        # Assign each point to the nearest centroid
+        distances = np.zeros((len(data), k))
+        for i in range(k):
+            distances[:, i] = np.sqrt(np.sum((data - centroids[i])**2, axis=1))
+
+        labels = np.argmin(distances, axis=1)
+
+        # Update centroids
+        new_centroids = np.zeros_like(centroids)
+        for i in range(k):
+            cluster_points = data[labels == i]
+            if len(cluster_points) > 0:
+                new_centroids[i] = cluster_points.mean(axis=0)
+            else:
+                new_centroids[i] = centroids[i]
+
+        centroids = new_centroids
+        print(f"  Iteration {iteration + 1}/{max_iterations} completed")
+
+    print("K-means clustering completed!\n")
+    return centroids, labels
+
+
 def visualize_groups(group1, group2, group3, overlap_points):
     """
-    Visualize the three groups of data points.
+    Visualize the three groups of data points with interactive K-means button.
 
     Parameters:
     -----------
@@ -86,19 +138,82 @@ def visualize_groups(group1, group2, group3, overlap_points):
     overlap_points : numpy array
         Array containing overlapping points
     """
-    fig, ax = plt.subplots(figsize=(10, 8))
+    # Combine all data points into a single array
+    all_data = np.vstack([group1, group2, group3])
 
-    # Plot all groups with transparency to show overlap
-    ax.scatter(group1[:, 0], group1[:, 1], c='red', alpha=0.4, s=20, label='Group 1')
-    ax.scatter(group2[:, 0], group2[:, 1], c='blue', alpha=0.4, s=20, label='Group 2')
-    ax.scatter(group3[:, 0], group3[:, 1], c='green', alpha=0.4, s=20, label='Group 3')
+    fig, ax = plt.subplots(figsize=(10, 8))
+    plt.subplots_adjust(bottom=0.15)  # Make room for button
+
+    # Initial plot - all groups with transparency to show overlap
+    scatter1 = ax.scatter(group1[:, 0], group1[:, 1], c='red', alpha=0.4, s=20, label='Group 1')
+    scatter2 = ax.scatter(group2[:, 0], group2[:, 1], c='blue', alpha=0.4, s=20, label='Group 2')
+    scatter3 = ax.scatter(group3[:, 0], group3[:, 1], c='green', alpha=0.4, s=20, label='Group 3')
     ax.set_xlabel('X Coordinate')
     ax.set_ylabel('Y Coordinate')
     ax.set_title('Three Overlapping Groups (2000 points each, 20% overlap)')
     ax.legend()
     ax.grid(True, alpha=0.3)
 
-    plt.tight_layout()
+    # Store references for updating
+    state = {
+        'original_scatters': [scatter1, scatter2, scatter3],
+        'kmeans_scatter': None,
+        'centroids_scatter': None,
+        'showing_kmeans': False
+    }
+
+    def on_kmeans_button_click(event):
+        """Callback function for K-means button."""
+        if not state['showing_kmeans']:
+            # Run K-means clustering
+            centroids, labels = kmeans_clustering(all_data, k=3, max_iterations=5)
+
+            # Hide original groups
+            for scatter in state['original_scatters']:
+                scatter.set_visible(False)
+
+            # Show K-means clusters
+            colors = ['purple', 'orange', 'cyan']
+            for i in range(3):
+                cluster_points = all_data[labels == i]
+                if state['kmeans_scatter'] is None:
+                    ax.scatter(cluster_points[:, 0], cluster_points[:, 1],
+                              c=colors[i], alpha=0.5, s=20, label=f'Cluster {i+1}')
+                else:
+                    ax.scatter(cluster_points[:, 0], cluster_points[:, 1],
+                              c=colors[i], alpha=0.5, s=20, label=f'Cluster {i+1}')
+
+            # Plot centroids
+            state['centroids_scatter'] = ax.scatter(centroids[:, 0], centroids[:, 1],
+                                                     c='black', marker='X', s=200,
+                                                     edgecolors='white', linewidths=2,
+                                                     label='Centroids', zorder=5)
+
+            ax.set_title('K-means Clustering Results (K=3, 5 iterations)')
+            ax.legend()
+            state['showing_kmeans'] = True
+            button.label.set_text('Show Original')
+        else:
+            # Clear K-means results
+            for collection in ax.collections[3:]:  # Remove K-means scatters and centroids
+                collection.remove()
+
+            # Show original groups again
+            for scatter in state['original_scatters']:
+                scatter.set_visible(True)
+
+            ax.set_title('Three Overlapping Groups (2000 points each, 20% overlap)')
+            ax.legend()
+            state['showing_kmeans'] = False
+            button.label.set_text('Run K-means')
+
+        plt.draw()
+
+    # Add button for K-means clustering
+    button_ax = plt.axes([0.4, 0.02, 0.2, 0.05])
+    button = Button(button_ax, 'Run K-means')
+    button.on_clicked(on_kmeans_button_click)
+
     plt.savefig('overlapping_groups.png', dpi=300, bbox_inches='tight')
     print("Visualization saved as 'overlapping_groups.png'")
     plt.show()
