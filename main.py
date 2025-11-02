@@ -162,7 +162,8 @@ def visualize_groups(group1, group2, group3, overlap_points):
         'showing_kmeans': False,
         'centroids': None,
         'labels': None,
-        'scattered': False
+        'scattered': False,
+        'scattered_clusters': set()  # Track which clusters have been scattered
     }
 
     def on_kmeans_button_click(event):
@@ -175,6 +176,7 @@ def visualize_groups(group1, group2, group3, overlap_points):
             state['centroids'] = centroids
             state['labels'] = labels
             state['scattered'] = False
+            state['scattered_clusters'] = set()  # Reset scattered clusters
 
             # Hide original groups
             for scatter in state['original_scatters']:
@@ -230,6 +232,7 @@ def visualize_groups(group1, group2, group3, overlap_points):
             state['showing_kmeans'] = False
             state['centroids'] = None
             state['labels'] = None
+            state['scattered_clusters'] = set()  # Reset scattered clusters
             button.label.set_text('Run K-means')
 
         plt.draw()
@@ -281,6 +284,18 @@ def visualize_groups(group1, group2, group3, overlap_points):
                 # Update the scatter plot with new positions
                 if state['kmeans_scatter'] is not None:
                     state['kmeans_scatter'].set_offsets(new_positions)
+
+                    # Remove edge colors from scattered points
+                    state['scattered_clusters'].add(i)
+                    current_edge_colors = state['kmeans_scatter'].get_edgecolors()
+
+                    # Set edge color to 'none' for scattered cluster points
+                    cluster_edge_colors = ['purple', 'orange', 'cyan']
+                    for point_idx, label in enumerate(labels):
+                        if label in state['scattered_clusters']:
+                            current_edge_colors[point_idx] = [0, 0, 0, 0]  # Transparent edge
+
+                    state['kmeans_scatter'].set_edgecolors(current_edge_colors)
 
                 # Keep centroids in place
                 state['scattered'] = True
