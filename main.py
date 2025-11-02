@@ -77,7 +77,7 @@ def generate_overlapping_groups(n_points=2000, overlap_percentage=0.20, random_s
 
 def visualize_groups(group1, group2, group3, overlap_points):
     """
-    Visualize the three groups of data points with overlap highlighted.
+    Visualize the three groups of data points.
 
     Parameters:
     -----------
@@ -86,29 +86,17 @@ def visualize_groups(group1, group2, group3, overlap_points):
     overlap_points : numpy array
         Array containing overlapping points
     """
-    fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(16, 7))
+    fig, ax = plt.subplots(figsize=(10, 8))
 
-    # Plot 1: All groups with transparency to show overlap
-    ax1.scatter(group1[:, 0], group1[:, 1], c='red', alpha=0.4, s=20, label='Group 1')
-    ax1.scatter(group2[:, 0], group2[:, 1], c='blue', alpha=0.4, s=20, label='Group 2')
-    ax1.scatter(group3[:, 0], group3[:, 1], c='green', alpha=0.4, s=20, label='Group 3')
-    ax1.set_xlabel('X Coordinate')
-    ax1.set_ylabel('Y Coordinate')
-    ax1.set_title('Three Overlapping Groups (2000 points each, 20% overlap)')
-    ax1.legend()
-    ax1.grid(True, alpha=0.3)
-
-    # Plot 2: Overlap points highlighted
-    ax2.scatter(group1[:, 0], group1[:, 1], c='lightcoral', alpha=0.2, s=15, label='Group 1')
-    ax2.scatter(group2[:, 0], group2[:, 1], c='lightblue', alpha=0.2, s=15, label='Group 2')
-    ax2.scatter(group3[:, 0], group3[:, 1], c='lightgreen', alpha=0.2, s=15, label='Group 3')
-    ax2.scatter(overlap_points[:, 0], overlap_points[:, 1], c='black', alpha=0.8, s=30,
-                marker='x', label='Overlap Points', linewidths=2)
-    ax2.set_xlabel('X Coordinate')
-    ax2.set_ylabel('Y Coordinate')
-    ax2.set_title('Overlap Points Highlighted')
-    ax2.legend()
-    ax2.grid(True, alpha=0.3)
+    # Plot all groups with transparency to show overlap
+    ax.scatter(group1[:, 0], group1[:, 1], c='red', alpha=0.4, s=20, label='Group 1')
+    ax.scatter(group2[:, 0], group2[:, 1], c='blue', alpha=0.4, s=20, label='Group 2')
+    ax.scatter(group3[:, 0], group3[:, 1], c='green', alpha=0.4, s=20, label='Group 3')
+    ax.set_xlabel('X Coordinate')
+    ax.set_ylabel('Y Coordinate')
+    ax.set_title('Three Overlapping Groups (2000 points each, 20% overlap)')
+    ax.legend()
+    ax.grid(True, alpha=0.3)
 
     plt.tight_layout()
     plt.savefig('overlapping_groups.png', dpi=300, bbox_inches='tight')
