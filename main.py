@@ -168,72 +168,63 @@ def visualize_groups(group1, group2, group3, overlap_points):
 
     def on_kmeans_button_click(event):
         """Callback function for K-means button."""
-        if not state['showing_kmeans']:
-            # Run K-means clustering
-            centroids, labels = kmeans_clustering(all_data, k=3, max_iterations=5)
+        # Clear any previous K-means results
+        if state['showing_kmeans']:
+            if state['kmeans_scatter'] is not None:
+                state['kmeans_scatter'].remove()
+                state['kmeans_scatter'] = None
+            if state['centroids_scatter'] is not None:
+                state['centroids_scatter'].remove()
+                state['centroids_scatter'] = None
 
-            # Store centroids and labels in state
-            state['centroids'] = centroids
-            state['labels'] = labels
-            state['scattered'] = False
-            state['scattered_clusters'] = set()  # Reset scattered clusters
+        # Run K-means clustering
+        centroids, labels = kmeans_clustering(all_data, k=3, max_iterations=5)
 
-            # Hide original groups
-            for scatter in state['original_scatters']:
-                scatter.set_visible(False)
+        # Store centroids and labels in state
+        state['centroids'] = centroids
+        state['labels'] = labels
+        state['scattered'] = False
+        state['scattered_clusters'] = set()  # Reset scattered clusters
 
-            # Create original color array (red for group1, blue for group2, green for group3)
-            n1, n2, n3 = len(group1), len(group2), len(group3)
-            original_colors = np.array(['red'] * n1 + ['blue'] * n2 + ['green'] * n3)
+        # Hide original groups
+        for scatter in state['original_scatters']:
+            scatter.set_visible(False)
 
-            # Cluster edge colors
-            cluster_edge_colors = ['purple', 'orange', 'cyan']
+        # Create original color array (red for group1, blue for group2, green for group3)
+        n1, n2, n3 = len(group1), len(group2), len(group3)
+        original_colors = np.array(['red'] * n1 + ['blue'] * n2 + ['green'] * n3)
 
-            # Plot points with original fill color and cluster edge color
-            edge_colors = np.array([cluster_edge_colors[label] for label in labels])
+        # Cluster edge colors
+        cluster_edge_colors = ['purple', 'orange', 'cyan']
 
-            state['kmeans_scatter'] = ax.scatter(all_data[:, 0], all_data[:, 1],
-                                                  c=original_colors,
-                                                  edgecolors=edge_colors,
-                                                  alpha=0.6, s=40, linewidths=2,
-                                                  label='Clustered Points')
+        # Plot points with original fill color and cluster edge color
+        edge_colors = np.array([cluster_edge_colors[label] for label in labels])
 
-            # Plot centroids
-            state['centroids_scatter'] = ax.scatter(centroids[:, 0], centroids[:, 1],
-                                                     c='black', marker='X', s=200,
-                                                     edgecolors='white', linewidths=2,
-                                                     label='Centroids', zorder=5)
+        state['kmeans_scatter'] = ax.scatter(all_data[:, 0], all_data[:, 1],
+                                              c=original_colors,
+                                              edgecolors=edge_colors,
+                                              alpha=0.6, s=40, linewidths=2,
+                                              label='Clustered Points')
 
-            # Create custom legend for clusters
-            from matplotlib.patches import Patch
-            legend_elements = [
-                Patch(facecolor='none', edgecolor='purple', label='Cluster 1', linewidth=2),
-                Patch(facecolor='none', edgecolor='orange', label='Cluster 2', linewidth=2),
-                Patch(facecolor='none', edgecolor='cyan', label='Cluster 3', linewidth=2),
-                plt.Line2D([0], [0], marker='X', color='w', markerfacecolor='black',
-                          markersize=10, label='Centroids', markeredgecolor='white', markeredgewidth=1)
-            ]
-            ax.legend(handles=legend_elements)
+        # Plot centroids
+        state['centroids_scatter'] = ax.scatter(centroids[:, 0], centroids[:, 1],
+                                                 c='black', marker='X', s=200,
+                                                 edgecolors='white', linewidths=2,
+                                                 label='Centroids', zorder=5)
 
-            ax.set_title('K-means Clustering Results (K=3, 5 iterations)')
-            state['showing_kmeans'] = True
-            button.label.set_text('Show Original')
-        else:
-            # Clear K-means results
-            for collection in ax.collections[3:]:  # Remove K-means scatters and centroids
-                collection.remove()
+        # Create custom legend for clusters
+        from matplotlib.patches import Patch
+        legend_elements = [
+            Patch(facecolor='none', edgecolor='purple', label='Cluster 1', linewidth=2),
+            Patch(facecolor='none', edgecolor='orange', label='Cluster 2', linewidth=2),
+            Patch(facecolor='none', edgecolor='cyan', label='Cluster 3', linewidth=2),
+            plt.Line2D([0], [0], marker='X', color='w', markerfacecolor='black',
+                      markersize=10, label='Centroids', markeredgecolor='white', markeredgewidth=1)
+        ]
+        ax.legend(handles=legend_elements)
 
-            # Show original groups again
-            for scatter in state['original_scatters']:
-                scatter.set_visible(True)
-
-            ax.set_title('Three Overlapping Groups (2000 points each, 20% overlap)')
-            ax.legend()
-            state['showing_kmeans'] = False
-            state['centroids'] = None
-            state['labels'] = None
-            state['scattered_clusters'] = set()  # Reset scattered clusters
-            button.label.set_text('Run K-means')
+        ax.set_title('K-means Clustering Results (K=3, 5 iterations)')
+        state['showing_kmeans'] = True
 
         plt.draw()
 
